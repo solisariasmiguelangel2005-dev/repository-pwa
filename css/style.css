@@ -1,0 +1,13 @@
+/* Soporte para el área segura de los iPhone (notch) en PWAs instaladas */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ocultar scrollbar visualmente pero permitir el scroll */
+main::-webkit-scrollbar {
+    display: none;
+}
+main {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

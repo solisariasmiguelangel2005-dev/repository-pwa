@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevConnect - Red Social</title>
+    <!-- Usamos Tailwind CSS por CDN para prototipar rapidísimo el App Shell -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100 h-screen flex flex-col font-sans">
+
+    <!-- Header / Top App Bar -->
+    <header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
+        <h1 class="text-xl font-bold"><i class="fa-solid fa-code"></i> DevConnect</h1>
+        <button id="btn-sync" class="hover:text-blue-200">
+            <i class="fa-solid fa-rotate"></i>
+        </button>
+    </header>
+
+    <!-- Área Principal de Contenido (Scrollable) -->
+    <main class="flex-1 overflow-y-auto p-4 pb-20" id="feed">
+        
+        <!-- Tarjeta de Publicación de Ejemplo -->
+        <article class="bg-white p-4 rounded-lg shadow mb-4">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 rounded-full bg-blue-300 flex items-center justify-center text-white font-bold mr-3">
+                    P
+                </div>
+                <div>
+                    <h2 class="font-bold text-gray-800">Profesor Web</h2>
+                    <p class="text-xs text-gray-500">Hace 2 minutos</p>
+                </div>
+            </div>
+            <p class="text-gray-700">¡Bienvenidos a nuestra red social de la clase! Pronto esta app funcionará 100% sin conexión. 🚀</p>
+        </article>
+
+    </main>
+
+    <!-- Botón Flotante para nueva publicación (FAB) -->
+    <button class="fixed bottom-20 right-4 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg text-2xl flex items-center justify-center hover:bg-blue-700 transition">
+        <i class="fa-solid fa-pen"></i>
+    </button>
+
+    <!-- Barra de Navegación Inferior (Bottom Navigation) -->
+    <nav class="bg-white border-t border-gray-200 fixed bottom-0 w-full flex justify-around p-3 text-gray-500 pb-safe">
+        <a href="#" class="flex flex-col items-center text-blue-600">
+            <i class="fa-solid fa-house text-xl mb-1"></i>
+            <span class="text-[10px]">Inicio</span>
+        </a>
+        <a href="#" class="flex flex-col items-center hover:text-blue-600 transition">
+            <i class="fa-solid fa-magnifying-glass text-xl mb-1"></i>
+            <span class="text-[10px]">Buscar</span>
+        </a>
+        <a href="#" class="flex flex-col items-center hover:text-blue-600 transition">
+            <i class="fa-regular fa-bell text-xl mb-1"></i>
+            <span class="text-[10px]">Avisos</span>
+        </a>
+        <a href="#" class="flex flex-col items-center hover:text-blue-600 transition">
+            <i class="fa-regular fa-user text-xl mb-1"></i>
+            <span class="text-[10px]">Perfil</span>
+        </a>
+    </nav>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
