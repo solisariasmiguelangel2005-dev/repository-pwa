@@ -6,8 +6,11 @@ const CACHE_NAME = 'devconnect-shell-v1';
 const LOCAL_ASSETS = [
     './',
     './index.html',
+    './manifest.json',
     './css/style.css',
-    './js/app.js'
+    './js/app.js',
+    './img/icon-192.png',
+    './img/icon-512.png'
 ];
 
 // 2. Recursos externos de CDN
