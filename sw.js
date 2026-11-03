@@ -1,8 +1,7 @@
-// sw.js - Service Worker con estrategia Cache First
+
 
 const CACHE_NAME = 'devconnect-shell-v3';
 
-// 1. Archivos locales de tu proyecto
 const LOCAL_ASSETS = [
     './',
     './index.html',
@@ -13,7 +12,6 @@ const LOCAL_ASSETS = [
     './img/icon-512.png'
 ];
 
-// 2. CDN que se guardan con CORS normal (cdnjs permite CORS)
 const EXTERNAL_CORS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2',
@@ -21,7 +19,6 @@ const EXTERNAL_CORS = [
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-brands-400.woff2'
 ];
 
-// 3. CDN que se guardan con no-cors (scripts, aceptan respuesta opaca)
 const EXTERNAL_NOCORS = [
     'https://cdn.tailwindcss.com'
 ];
@@ -35,10 +32,8 @@ self.addEventListener('install', event => {
             .then(async cache => {
                 console.log('SW: Caché abierta con éxito:', CACHE_NAME);
 
-                // Recursos locales
                 await cache.addAll(LOCAL_ASSETS);
 
-                // CDN con CORS
                 const corsPromises = EXTERNAL_CORS.map(async url => {
                     try {
                         const response = await fetch(url, { mode: 'cors' });
@@ -50,7 +45,6 @@ self.addEventListener('install', event => {
                     }
                 });
 
-                // CDN con no-cors
                 const noCorsPromises = EXTERNAL_NOCORS.map(async url => {
                     try {
                         const response = await fetch(url, { mode: 'no-cors' });
@@ -91,7 +85,6 @@ self.addEventListener('activate', event => {
 
 // FASE FETCH - Estrategia Cache First
 self.addEventListener('fetch', event => {
-    // Solo manejamos peticiones GET
     if (event.request.method !== 'GET') return;
 
     event.respondWith(
@@ -102,7 +95,6 @@ self.addEventListener('fetch', event => {
             }
 
             return fetch(event.request).catch(() => {
-                // Sin conexión y sin caché: si es una navegación, devolvemos el index
                 if (event.request.mode === 'navigate') {
                     return caches.match('./index.html');
                 }
