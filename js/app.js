@@ -38,7 +38,7 @@ async function cargarYRenderizarPosts() {
     if (!feed) return;
 
     try {
-        const posts = await obtenerDeIndexedDB('posts');
+        const posts = await obtenerPosts();
 
         if (posts.length === 0) {
             feed.innerHTML = '<p class="text-center text-gray-500 py-4">No hay publicaciones locales.</p>';
@@ -54,90 +54,74 @@ async function cargarYRenderizarPosts() {
     }
 }
 
+async function enviarAlServidor(post) {
+    // Simulación de envío a un endpoint backend o API REST externa
+    console.log('[API] Enviando post al servidor en tiempo real:', post);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('modal-post');
     const formulario = document.getElementById('form-post');
-    const input = document.getElementById('input-contenido');
+    const inputAutor = document.getElementById('autor');
+    const inputContenido = document.getElementById('contenido');
+    const btnNuevo = document.getElementById('btn-nuevo-post');
+    const btnCancelar = document.getElementById('btn-cancelar');
     const feed = document.getElementById('feed');
 
     // 1. Mostrar lo que ya está guardado
     cargarYRenderizarPosts();
 
-    // 2. Crear un post nuevo
-    formulario.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const texto = input.value.trim();
-        if (!texto) return;
-
-        await guardarEnIndexedDB('posts', {
-            id: Date.now(), // número, no texto
-            autor: 'Desarrollador Local',
-            tiempo: new Date().toLocaleTimeString(),
-            contenido: texto
-        });
-
-        formulario.reset();
-        await cargarYRenderizarPosts();
+    // 2. Abrir y cerrar el modal
+    btnNuevo.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        inputAutor.focus();
     });
 
-    // 3. Borrar un post (delegación de eventos)
+    btnCancelar.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    // 3. Crear un post nuevo (un SOLO listener de submit)
+    formulario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const texto = inputContenido.value.trim();
+        if (!texto) return;
+
+        const nuevoPost = {
+            id: Date.now(), // siempre número, para que guardar, ordenar y borrar usen el mismo tipo
+            autor: inputAutor.value.trim() || 'Anónimo',
+            tiempo: new Date().toLocaleTimeString(),
+            contenido: texto
+        };
+
+        // Guardado local + actualización visual inmediata
+        await guardarPost(nuevoPost);
+        formulario.reset();
+        modal.classList.add('hidden');
+        await cargarYRenderizarPosts();
+
+        // Background Sync (si el navegador lo soporta)
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                await guardarPostSincronizacion(nuevoPost);
+                await registration.sync.register('sync-nuevos-posts');
+                console.log('[App] Tarea de Background Sync registrada con éxito.');
+            } catch (error) {
+                console.warn('[App] Error al registrar Sync, intentando envío normal:', error);
+                enviarAlServidor(nuevoPost);
+            }
+        } else {
+            enviarAlServidor(nuevoPost);
+        }
+    });
+
+    // 4. Borrar un post (delegación de eventos)
     feed.addEventListener('click', async (e) => {
         const btn = e.target.closest('.btn-borrar');
         if (!btn) return;
 
-        await borrarDeIndexedDB('posts', Number(btn.dataset.id));
+        await eliminarPost(Number(btn.dataset.id));
         await cargarYRenderizarPosts();
     });
-
-    // 4. El botón del lápiz lleva el cursor al cuadro de texto
-    const btnNuevo = document.getElementById('btn-nuevo-post');
-    if (btnNuevo) {
-        btnNuevo.addEventListener('click', () => {
-            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            input.focus();
-        });
-    }
 });
-
-
-// js/app.js - Registro de la tarea de sincronización
-document.getElementById('form-post')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const contenido = document.getElementById('input-contenido').value;
-    if (!contenido.trim()) return;
-
-    const nuevoPost = {
-        id: Date.now().toString(),
-        autor: 'Estudiante PWA',
-        contenido: contenido,
-        fecha: new Date().toLocaleTimeString()
-    };
-
-    // 1. Guardamos localmente en el feed para actualización visual inmediata
-    await guardarPost(nuevoPost);
-    await cargarYRenderizarPosts();
-    document.getElementById('form-post').reset();
-
-    // 2. Verificamos soporte de Background Sync y Service Worker
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            // Guardamos en la cola temporal de IndexedDB
-            await guardarPostSincronizacion(nuevoPost);
-            // Registramos la etiqueta de sincronización
-            await registration.sync.register('sync-nuevos-posts');
-            console.log('[App] Tarea de Background Sync registrada con éxito.');
-        } catch (error) {
-            console.warn('[App] Error al registrar Sync, intentando envío normal:', error);
-            enviarAlServidor(nuevoPost);
-        }
-    } else {
-        // Fallback para navegadores que no soportan SyncManager
-        enviarAlServidor(nuevoPost);
-    }
-});
-
-async function enviarAlServidor(post) {
-    // Simulación de envío a un endpoint backend o API REST externa
-    console.log('[API] Enviando post al servidor en tiempo real:', post);
-}
