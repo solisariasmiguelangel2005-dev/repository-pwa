@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevConnect - Red Social</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Librería idb (basada en Promesas) -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+
+    <!-- Tu archivo de base de datos local -->
+    <script src="js/db.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="./manifest.json">
 
-    <meta name="theme-color" content="#2563eb"> 
+    <meta name="theme-color" content="#2563eb">
 
-    <link rel="apple-touch-icon" href="images/icon-192x192.png"> 
+    <link rel="apple-touch-icon" href="images/icon-192x192.png">
 </head>
 <body class="bg-gray-100 h-screen flex flex-col font-sans">
 
@@ -22,24 +29,15 @@
         </button>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-4 pb-20" id="dynamic-cards-container">
-        
-        <article class="bg-white p-4 rounded-lg shadow mb-4">
-            <div class="flex items-center mb-3">
-                <div class="w-10 h-10 rounded-full bg-blue-300 flex items-center justify-center text-white font-bold mr-3">
-                    P
-                </div>
-                <div>
-                    <h2 class="font-bold text-gray-800">Profesor Web</h2>
-                    <p class="text-xs text-gray-500">Hace 2 minutos</p>
-                </div>
-            </div>
-            <p class="text-gray-700">¡Bienvenidos a nuestra red social de la clase! Pronto esta app funcionará 100% sin conexión. 🚀</p>
-        </article>
+    <main class="flex-1 overflow-y-auto p-4 pb-24">
+
+
+        <!-- Aquí se dibujan los posts guardados en IndexedDB -->
+        <div id="feed"></div>
 
     </main>
 
-    <button class="fixed bottom-20 right-4 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg text-2xl flex items-center justify-center hover:bg-blue-700 transition">
+    <button id="btn-nuevo-post" class="fixed bottom-20 right-4 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg text-2xl flex items-center justify-center hover:bg-blue-700 transition">
         <i class="fa-solid fa-pen"></i>
     </button>
 

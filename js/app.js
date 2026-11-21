@@ -1,63 +1,143 @@
-
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-        .then(registro => {
-            console.log('¡Éxito! Service Worker registrado correctamente.', registro);
-        })
-        .catch(error => {
-            console.warn('Error al registrar el Service Worker:', error);
-        });
-} else {
-    console.error('Este navegador no soporta Service Workers.');
+// Escapa texto para evitar inyección de HTML
+function esc(texto) {
+    const d = document.createElement('div');
+    d.textContent = texto ?? '';
+    return d.innerHTML;
 }
 
-console.log('App Shell de DevConnect inicializado correctamente.');
+// Genera el HTML de una tarjeta
+function crearTarjeta(post) {
+    const autor = post.autor || 'Anónimo';
+    const tiempo = post.tiempo || post.fecha || '';
+    const inicial = autor.charAt(0).toUpperCase();
 
-const devItems = [
-  {
-    title: "Progressive Web Apps",
-    description: "Construye experiencias web rápidas y confiables utilizando Service Workers y caché local.",
-    badge: "PWA"
-  },
-  {
-    title: "App Shell Architecture",
-    description: "Separa la interfaz estática básica del contenido dinámico para acelerar drásticamente los tiempos de carga.",
-    badge: "Arquitectura"
-  },
-  {
-    title: "Client-Side Rendering",
-    description: "Alimenta dinámicamente tu interfaz consumiendo datos y generando componentes interactivos en el navegador.",
-    badge: "JavaScript"
-  }
-];
-
-function renderDynamicCards() {
-  const container = document.getElementById('dynamic-cards-container');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  devItems.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card'; 
-    
-    card.innerHTML = `
-      <span class="card-badge">${item.badge}</span>
-      <h3>${item.title}</h3>
-      <p>${item.description}</p>
+    return `
+        <article class="bg-white p-4 rounded-lg shadow mb-4 flex justify-between items-start">
+            <div class="flex items-start">
+                <div class="w-10 h-10 shrink-0 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold mr-3">
+                    ${esc(inicial)}
+                </div>
+                <div>
+                    <div class="flex items-center mb-1">
+                        <span class="font-bold text-gray-800 text-sm mr-2">${esc(autor)}</span>
+                        <span class="text-xs text-gray-400">${esc(tiempo)}</span>
+                    </div>
+                    <p class="text-gray-700">${esc(post.contenido)}</p>
+                </div>
+            </div>
+            <button data-id="${post.id}" class="btn-borrar text-red-500 hover:text-red-700 text-xs p-1">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </article>
     `;
-    
-    container.appendChild(card);
-  });
+}
+
+// Lee de IndexedDB y pinta en pantalla
+async function cargarYRenderizarPosts() {
+    const feed = document.getElementById('feed');
+    if (!feed) return;
+
+    try {
+        const posts = await obtenerDeIndexedDB('posts');
+
+        if (posts.length === 0) {
+            feed.innerHTML = '<p class="text-center text-gray-500 py-4">No hay publicaciones locales.</p>';
+            return;
+        }
+
+        // Más nuevos primero
+        posts.sort((a, b) => Number(b.id) - Number(a.id));
+        feed.innerHTML = posts.map(crearTarjeta).join('');
+    } catch (err) {
+        console.error('Error al cargar posts:', err);
+        feed.innerHTML = '<p class="text-center text-red-500 py-4">Error al leer la base de datos.</p>';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderDynamicCards();
+    const formulario = document.getElementById('form-post');
+    const input = document.getElementById('input-contenido');
+    const feed = document.getElementById('feed');
+
+    // 1. Mostrar lo que ya está guardado
+    cargarYRenderizarPosts();
+
+    // 2. Crear un post nuevo
+    formulario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        await guardarEnIndexedDB('posts', {
+            id: Date.now(), // número, no texto
+            autor: 'Desarrollador Local',
+            tiempo: new Date().toLocaleTimeString(),
+            contenido: texto
+        });
+
+        formulario.reset();
+        await cargarYRenderizarPosts();
+    });
+
+    // 3. Borrar un post (delegación de eventos)
+    feed.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-borrar');
+        if (!btn) return;
+
+        await borrarDeIndexedDB('posts', Number(btn.dataset.id));
+        await cargarYRenderizarPosts();
+    });
+
+    // 4. El botón del lápiz lleva el cursor al cuadro de texto
+    const btnNuevo = document.getElementById('btn-nuevo-post');
+    if (btnNuevo) {
+        btnNuevo.addEventListener('click', () => {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            input.focus();
+        });
+    }
 });
 
-const btnSync = document.getElementById('btn-sync');
-if (btnSync) {
-    btnSync.addEventListener('click', () => {
-        alert('Pronto aquí implementaremos la sincronización con Background Sync.');
-    });
+
+// js/app.js - Registro de la tarea de sincronización
+document.getElementById('form-post')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const contenido = document.getElementById('input-contenido').value;
+    if (!contenido.trim()) return;
+
+    const nuevoPost = {
+        id: Date.now().toString(),
+        autor: 'Estudiante PWA',
+        contenido: contenido,
+        fecha: new Date().toLocaleTimeString()
+    };
+
+    // 1. Guardamos localmente en el feed para actualización visual inmediata
+    await guardarPost(nuevoPost);
+    await cargarYRenderizarPosts();
+    document.getElementById('form-post').reset();
+
+    // 2. Verificamos soporte de Background Sync y Service Worker
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            // Guardamos en la cola temporal de IndexedDB
+            await guardarPostSincronizacion(nuevoPost);
+            // Registramos la etiqueta de sincronización
+            await registration.sync.register('sync-nuevos-posts');
+            console.log('[App] Tarea de Background Sync registrada con éxito.');
+        } catch (error) {
+            console.warn('[App] Error al registrar Sync, intentando envío normal:', error);
+            enviarAlServidor(nuevoPost);
+        }
+    } else {
+        // Fallback para navegadores que no soportan SyncManager
+        enviarAlServidor(nuevoPost);
+    }
+});
+
+async function enviarAlServidor(post) {
+    // Simulación de envío a un endpoint backend o API REST externa
+    console.log('[API] Enviando post al servidor en tiempo real:', post);
 }

@@ -103,3 +103,55 @@ self.addEventListener('fetch', event => {
         })
     );
 });
+
+
+// sw.js - Listener del evento sync
+
+// Importamos la librería idb dentro del Service Worker usando importScripts
+importScripts('https://cdn.jsdelivr.net/npm/idb@7/build/umd.js');
+
+self.addEventListener('sync', event => {
+    console.log('[SW] Evento Sync disparado:', event.tag);
+
+    if (event.tag === 'sync-nuevos-posts') {
+        // event.waitUntil asegura que el SW no se duerma hasta procesar la cola
+        event.waitUntil(enviarPostsEncolados());
+    }
+});
+
+async function enviarPostsEncolados() {
+    try {
+        // Abrimos la base de datos desde el Service Worker
+        const db = await idb.openDB('devconnect-db', 2);
+        const postsPendientes = await db.getAll('sync-posts');
+
+        console.log(`[SW] Procesando ${postsPendientes.length} publicaciones pendientes...`);
+
+        for (const post of postsPendientes) {
+            try {
+                // Simulamos la llamada HTTP hacia el servidor (ej. mockapi, firebase o backend propio)
+                console.log('[SW] Sincronizando con el servidor ->', post.contenido);
+                
+                // En un entorno real se haría:
+                // await fetch('[suspicious link removed]', {
+                //     method: 'POST',
+                //     body: JSON.stringify(post),
+                //     headers: { 'Content-Type': 'application/json' }
+                // });
+
+                // Una vez confirmado el envío al servidor, lo eliminamos de la cola
+                const tx = db.transaction('sync-posts', 'readwrite');
+                await tx.objectStore('sync-posts').delete(post.id);
+                await tx.done;
+                console.log(`[SW] Post ${post.id} sincronizado y eliminado de la cola.`);
+            } catch (errorEnvio) {
+                console.error('[SW] Error al enviar post individual:', errorEnvio);
+                // Si el servidor falla, lanzamos el error para que el navegador vuelva a reintentar el sync más tarde
+                throw errorEnvio;
+            }
+        }
+    } catch (error) {
+        console.error('[SW] Error general en el proceso de Background Sync:', error);
+        throw error;
+    }
+}
